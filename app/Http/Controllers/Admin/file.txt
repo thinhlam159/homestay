@@ -1,0 +1,35 @@
+use App\Services\FileServiceInterface;
+use Illuminate\Http\Request;
+
+public function upload(Request $request, FileServiceInterface $fileService)
+{
+    $request->validate([
+        'file' => 'required|file|max:2048', // Example validation
+    ]);
+
+    $file = $request->file('file');
+    $directory = 'uploads/properties'; // Example directory
+    $uploadedFileModel = $fileService->uploadFile($file, $directory);
+
+    // Now $uploadedFileModel contains the File model instance with file information
+    // You can associate this model with another model using polymorphic relationships if needed.
+
+    return response()->json(['message' => 'File uploaded successfully', 'file' => $uploadedFileModel]);
+}
+
+use App\Services\FileServiceInterface;
+
+public function delete(string $fileId, FileServiceInterface $fileService)
+{
+    $file = $fileService->getFileById($fileId);
+    if (!$file) {
+        return response()->json(['message' => 'File not found'], 404);
+    }
+
+    if ($fileService->deleteFileFromStorage($file)) { // Delete from storage first
+        $fileService->deleteFile($fileId); // Then delete from database
+        return response()->json(['message' => 'File deleted successfully']);
+    } else {
+        return response()->json(['message' => 'Failed to delete file from storage'], 500); // Handle storage deletion failure
+    }
+}
